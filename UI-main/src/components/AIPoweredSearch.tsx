@@ -464,17 +464,21 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
             ref={previewRef}
             className="mb-4"
             style={{
-              background: '#2684ff',      // Confluence blue
-              color: '#fff',              // White text for contrast
-              padding: '16px 24px',
-              borderRadius: '4px',
+              background: '#fff', // White background for card look
+              color: '#222',      // Dark text for readability
+              padding: '20px 28px',
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.07)', // Subtle shadow
+              border: '1px solid #e5e7eb', // Light border (optional)
               maxHeight: 300,
               overflowY: 'auto',
               overflowX: 'auto',
               minWidth: 0,
               width: '100%',
               boxSizing: 'border-box',
-              textAlign: 'left'
+              textAlign: 'left',
+              fontSize: '1rem', // Match your main response font size
+              fontFamily: 'inherit', // Inherit from parent
             }}
             dangerouslySetInnerHTML={{ __html: (previewContent || '').trimStart() }}
           />
