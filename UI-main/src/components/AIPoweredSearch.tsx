@@ -30,6 +30,10 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   const [error, setError] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [saveMode, setSaveMode] = useState('append');
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const [previewDiff, setPreviewDiff] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const toggleSelectAllPages = () => {
     if (selectAllPages) {
@@ -373,6 +377,31 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                       </button>
                       <button
                         onClick={async () => {
+                          setIsPreviewLoading(true);
+                          setShowPreview(false);
+                          try {
+                            const { space, page } = getConfluenceSpaceAndPageFromUrl();
+                            const preview = await apiService.previewSaveToConfluence({
+                              space_key: space,
+                              page_title: page,
+                              content: response || '',
+                              mode: saveMode,
+                            });
+                            setPreviewContent(preview.preview_content);
+                            setPreviewDiff(preview.diff);
+                            setShowPreview(true);
+                          } catch (err: any) {
+                            alert('Failed to generate preview: ' + (err.message || err));
+                          } finally {
+                            setIsPreviewLoading(false);
+                          }
+                        }}
+                        className="flex items-center space-x-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors border border-white/10"
+                      >
+                        {isPreviewLoading ? "Loading..." : "Preview"}
+                      </button>
+                      <button
+                        onClick={async () => {
                           const { space, page } = getConfluenceSpaceAndPageFromUrl();
                           if (!space || !page) {
                             alert('Confluence space or page not specified in macro src URL.');
@@ -415,6 +444,18 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
       {showToast && (
         <div style={{position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)', background: '#2684ff', color: 'white', padding: '16px 32px', borderRadius: 8, zIndex: 9999, fontWeight: 600, fontSize: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.15)'}}>
           Saved to Confluence! Please refresh this Confluence page to see your changes.
+        </div>
+      )}
+      {showPreview && (
+        <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded">
+          <h4 className="font-semibold mb-2">Preview of Updated Content</h4>
+          <div className="mb-4" style={{ whiteSpace: 'pre-wrap', background: '#fff', padding: '8px', borderRadius: '4px' }}>
+            {previewContent}
+          </div>
+          <h4 className="font-semibold mb-2">Diff</h4>
+          <pre style={{ background: '#222', color: '#fff', padding: '8px', borderRadius: '4px', overflowX: 'auto' }}>
+            {previewDiff}
+          </pre>
         </div>
       )}
     </div>
