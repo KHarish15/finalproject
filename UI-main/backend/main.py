@@ -1176,7 +1176,7 @@ async def export_content(request: ExportRequest, req: Request):
 async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
     """
     Update the content of a Confluence page (storage format).
-    Supports append (default), overwrite, and replace_section modes.
+    Supports append, overwrite, and replace_section modes.
     """
     try:
         api_key = get_actual_api_key_from_identifier(req.headers.get('x-api-key'))
@@ -1198,10 +1198,10 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 raise HTTPException(status_code=400, detail="heading_text must be provided for replace_section mode.")
             import re
             # Find the section by heading and replace its content
-            # This assumes headings are in the form <h1>, <h2>, etc.
-            heading_pattern = re.compile(rf'(<h[1-6][^>]*>\s*{re.escape(request.heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)', re.DOTALL | re.IGNORECASE)
+            # This assumes headings are in <h1>...</h1>, <h2>...</h2>, etc.
+            heading_pattern = re.compile(rf"(<h[1-6][^>]*>\s*{re.escape(request.heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.DOTALL | re.IGNORECASE)
             def replacer(match):
-                return match.group(1) + request.content
+                return f"{match.group(1)}\n{request.content}\n"
             new_content, count = heading_pattern.subn(replacer, existing_content, count=1)
             if count == 0:
                 raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
@@ -1215,7 +1215,7 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
             body=updated_body,
             representation="storage"
         )
-        return {"message": "Page updated successfully", "mode": request.mode}
+        return {"message": "Page updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
