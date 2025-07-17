@@ -26,6 +26,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({ onClose, onFeatureSelect,
   const [exportFormat, setExportFormat] = useState('markdown');
   const [error, setError] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [saveMode, setSaveMode] = useState<'append' | 'overwrite'>('append');
 
   const features = [
     { id: 'search' as const, label: 'AI Powered Search', icon: Search },
@@ -383,6 +384,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({ onClose, onFeatureSelect,
                               space_key: space,
                               page_title: page,
                               content: processedCode || '',
+                              mode: saveMode,
                             });
                             setShowToast(true);
                             setTimeout(() => setShowToast(false), 3000);
@@ -432,6 +434,19 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({ onClose, onFeatureSelect,
                       </select>
                     </div>
                     
+                    <div className="flex items-center space-x-2 mb-2">
+                      <label htmlFor="save-mode" className="text-sm font-medium text-gray-700">Save Mode:</label>
+                      <select
+                        id="save-mode"
+                        value={saveMode}
+                        onChange={e => setSaveMode(e.target.value as 'append' | 'overwrite')}
+                        className="border rounded px-2 py-1 text-sm"
+                      >
+                        <option value="append">Append</option>
+                        <option value="overwrite">Overwrite</option>
+                      </select>
+                    </div>
+
                     <div className="flex space-x-2">
                       <button
                         onClick={() => exportCode(exportFormat)}
@@ -452,6 +467,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({ onClose, onFeatureSelect,
                               space_key: space,
                               page_title: page,
                               content: processedCode || '',
+                              mode: saveMode,
                             });
                             setShowToast(true);
                             setTimeout(() => setShowToast(false), 3000);

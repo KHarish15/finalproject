@@ -138,6 +138,8 @@ export interface SaveToConfluenceRequest {
   space_key: string;
   page_title: string;
   content: string;
+  mode?: 'append' | 'overwrite' | 'replace_section';
+  heading_text?: string;
 }
 
 export interface SaveToConfluenceResponse {
