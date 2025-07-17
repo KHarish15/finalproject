@@ -448,7 +448,10 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
       )}
       {showPreview && (
         <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded">
-          <h4 className="font-semibold mb-2">Preview of Updated Content</h4>
+          <div className="flex justify-between items-center mb-2">
+            <h4 className="font-semibold">Preview of Updated Content</h4>
+            <button onClick={() => setShowPreview(false)} className="text-red-500 font-bold">Close Preview</button>
+          </div>
           <div className="mb-4" style={{ whiteSpace: 'pre-wrap', background: '#fff', padding: '8px', borderRadius: '4px' }}>
             {previewContent}
           </div>
