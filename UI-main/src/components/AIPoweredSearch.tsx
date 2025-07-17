@@ -473,7 +473,10 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
               overflowX: 'auto',
               maxHeight: 200,
               overflowY: 'auto',
-              width: '100%' // <-- Add this line
+              minWidth: 800,           // <-- Try this
+              width: '100vw',          // <-- Or this
+              whiteSpace: 'pre',
+              boxSizing: 'border-box'
             }}
           >
             {previewDiff}
