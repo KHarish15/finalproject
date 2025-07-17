@@ -472,7 +472,8 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
               borderRadius: '4px',
               overflowX: 'auto',
               maxHeight: 200,
-              overflowY: 'auto'
+              overflowY: 'auto',
+              width: '100%' // <-- Add this line
             }}
           >
             {previewDiff}
