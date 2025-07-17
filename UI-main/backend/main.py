@@ -1,3 +1,4 @@
+# Move all imports to the top of the file
 import os
 import io
 import re
@@ -1196,30 +1197,7 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
         elif request.mode == "replace_section":
             if not request.heading_text:
                 raise HTTPException(status_code=400, detail="heading_text must be provided for replace_section mode.")
-            import re
             # Find the section by heading and replace its content
-            heading_pattern = re.compile(rf"(<h[1-6][^>]*>\s*{re.escape(request.heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.DOTALL | re.IGNORECASE)
-            def replacer(match):
-                return f"{match.group(1)}\n{request.content}\n"
-            new_content, count = heading_pattern.subn(replacer, existing_content, count=1)
-            if count == 0:
-                raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
-            updated_body = new_content
-        else:  # append (default)
-            updated_body = existing_content + "<hr/>" + request.content
-        # Update page
-        confluence.update_page(
-            page_id=page_id,
-            title=request.page_title,
-            body=updated_body,
-            representation="storage"
-        )
-        return {"message": "Page updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-            import re
-            # Find the section by heading and replace its content
-            # This assumes headings are in <h1>...</h1>, <h2>...</h2>, etc.
             heading_pattern = re.compile(rf"(<h[1-6][^>]*>\s*{re.escape(request.heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.DOTALL | re.IGNORECASE)
             def replacer(match):
                 return f"{match.group(1)}\n{request.content}\n"
