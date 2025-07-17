@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Download, Save, FileText, X, ChevronDown, Loader2, Settings, Video, Code, TrendingUp, TestTube, Image, CheckCircle } from 'lucide-react';
 import { FeatureType } from '../App';
 import { apiService, Space } from '../services/api';
@@ -34,6 +34,8 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   const [previewDiff, setPreviewDiff] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
+  const previewRef = useRef(null);
 
   const toggleSelectAllPages = () => {
     if (selectAllPages) {
@@ -76,6 +78,12 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   useEffect(() => {
     setSelectAllPages(pages.length > 0 && selectedPages.length === pages.length);
   }, [selectedPages, pages]);
+
+  useEffect(() => {
+    if (showPreview && previewRef.current) {
+      previewRef.current.scrollLeft = 0;
+    }
+  }, [showPreview, previewContent]);
 
   const loadSpaces = async () => {
     try {
@@ -453,13 +461,18 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
             <button onClick={() => setShowPreview(false)} className="text-red-500 font-bold">Close Preview</button>
           </div>
           <div
+            ref={previewRef}
             className="mb-4"
             style={{
               background: '#fff',
               padding: '8px',
               borderRadius: '4px',
               maxHeight: 300,
-              overflowY: 'auto'
+              overflowY: 'auto',
+              overflowX: 'auto',      // Add this for horizontal scroll if needed
+              minWidth: 0,            // Allow shrinking in flex/grid layouts
+              width: '100%',          // Fill parent width
+              boxSizing: 'border-box'
             }}
             dangerouslySetInnerHTML={{ __html: previewContent || '' }}
           />
