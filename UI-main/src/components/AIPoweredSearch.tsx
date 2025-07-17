@@ -29,6 +29,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   const [pages, setPages] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [saveMode, setSaveMode] = useState('append');
 
   const toggleSelectAllPages = () => {
     if (selectAllPages) {
@@ -349,6 +350,19 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                       </select>
                     </div>
                     
+                    <div className="flex items-center space-x-2 mb-2">
+                      <label htmlFor="save-mode" className="text-sm font-medium text-gray-700">Save Mode:</label>
+                      <select
+                        id="save-mode"
+                        value={saveMode}
+                        onChange={e => setSaveMode(e.target.value)}
+                        className="px-3 py-1 border border-white/30 rounded text-sm focus:ring-2 focus:ring-confluence-blue bg-white/70 backdrop-blur-sm"
+                      >
+                        <option value="append">Append</option>
+                        <option value="overwrite">Overwrite</option>
+                      </select>
+                    </div>
+
                     <div className="flex space-x-2">
                       <button
                         onClick={() => exportResponse(exportFormat)}
@@ -369,6 +383,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                               space_key: space,
                               page_title: page,
                               content: response || '',
+                              mode: saveMode, // <-- add this line
                             });
                             setShowToast(true);
                             setTimeout(() => setShowToast(false), 3000);
