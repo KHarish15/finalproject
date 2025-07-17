@@ -446,7 +446,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({ onClose, onFeatureSelect,
                         <option value="overwrite">Overwrite</option>
                       </select>
                     </div>
-
+                    
                     <div className="flex space-x-2">
                       <button
                         onClick={() => exportCode(exportFormat)}

@@ -464,17 +464,19 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
             ref={previewRef}
             className="mb-4"
             style={{
-              background: '#fff',
-              padding: '8px',
+              background: '#2684ff',      // Confluence blue
+              color: '#fff',              // White text for contrast
+              padding: '16px 24px',
               borderRadius: '4px',
               maxHeight: 300,
               overflowY: 'auto',
-              overflowX: 'auto',      // Add this for horizontal scroll if needed
-              minWidth: 0,            // Allow shrinking in flex/grid layouts
-              width: '100%',          // Fill parent width
-              boxSizing: 'border-box'
+              overflowX: 'auto',
+              minWidth: 0,
+              width: '100%',
+              boxSizing: 'border-box',
+              textAlign: 'left'
             }}
-            dangerouslySetInnerHTML={{ __html: previewContent || '' }}
+            dangerouslySetInnerHTML={{ __html: (previewContent || '').trimStart() }}
           />
           <h4 className="font-semibold mb-2">Diff</h4>
           <pre
