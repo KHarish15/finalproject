@@ -9,7 +9,7 @@ import traceback
 import warnings
 import requests
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fpdf import FPDF
@@ -1215,6 +1215,50 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
             representation="storage"
         )
         return {"message": "Page updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/preview-save-to-confluence")
+async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Request):
+    """
+    Preview the result of saving to Confluence. Returns the updated content and a diff, but does not save.
+    """
+    try:
+        api_key = get_actual_api_key_from_identifier(req.headers.get('x-api-key'))
+        genai.configure(api_key=api_key)
+        confluence = init_confluence()
+        space_key = auto_detect_space(confluence, request.space_key)
+        page = confluence.get_page_by_title(space=space_key, title=request.page_title, expand='body.storage')
+        if not page:
+            raise HTTPException(status_code=404, detail="Page not found")
+        existing_content = page["body"]["storage"]["value"]
+        updated_body = existing_content
+        if request.mode == "overwrite":
+            updated_body = request.content
+        elif request.mode == "replace_section":
+            if not request.heading_text:
+                raise HTTPException(status_code=400, detail="heading_text must be provided for replace_section mode.")
+            heading_pattern = re.compile(rf"(<h[1-6][^>]*>\s*{re.escape(request.heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.DOTALL | re.IGNORECASE)
+            def replacer(match):
+                return f"{match.group(1)}\n{request.content}\n"
+            new_content, count = heading_pattern.subn(replacer, existing_content, count=1)
+            if count == 0:
+                raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
+            updated_body = new_content
+        else:  # append (default)
+            updated_body = existing_content + "<hr/>" + request.content
+        # Generate diff
+        diff = list(difflib.unified_diff(
+            existing_content.splitlines(),
+            updated_body.splitlines(),
+            fromfile='current',
+            tofile='preview',
+            lineterm='' 
+        ))
+        return {
+            "preview_content": updated_body,
+            "diff": "\n".join(diff)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

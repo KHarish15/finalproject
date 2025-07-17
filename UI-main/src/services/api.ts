@@ -282,6 +282,13 @@ class ApiService {
       body: JSON.stringify(request),
     });
   }
+
+  async previewSaveToConfluence(request: SaveToConfluenceRequest): Promise<{ preview_content: string; diff: string }> {
+    return this.makeRequest<{ preview_content: string; diff: string }>('/preview-save-to-confluence', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
 }
 
 export const apiService = new ApiService(); 
