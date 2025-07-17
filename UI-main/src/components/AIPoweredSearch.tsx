@@ -452,11 +452,13 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
             <h4 className="font-semibold">Preview of Updated Content</h4>
             <button onClick={() => setShowPreview(false)} className="text-red-500 font-bold">Close Preview</button>
           </div>
-          <div className="mb-4" style={{ whiteSpace: 'pre-wrap', background: '#fff', padding: '8px', borderRadius: '4px' }}>
-            {previewContent}
-          </div>
+          <div
+            className="mb-4"
+            style={{ background: '#fff', padding: '8px', borderRadius: '4px', maxHeight: 300, overflowY: 'auto' }}
+            dangerouslySetInnerHTML={{ __html: previewContent || '' }}
+          />
           <h4 className="font-semibold mb-2">Diff</h4>
-          <pre style={{ background: '#222', color: '#fff', padding: '8px', borderRadius: '4px', overflowX: 'auto' }}>
+          <pre style={{ background: '#222', color: '#fff', padding: '8px', borderRadius: '4px', overflowX: 'auto', maxHeight: 200, overflowY: 'auto' }}>
             {previewDiff}
           </pre>
         </div>
