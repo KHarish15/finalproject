@@ -1256,7 +1256,7 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
             lineterm='' 
         ))
         return {
-            "preview_content": updated_body,
+            "preview_content": request.content,
             "diff": "\n".join(diff)
         }
     except Exception as e:
