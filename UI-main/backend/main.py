@@ -1208,7 +1208,11 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
             updated_body = new_content
         else:  # append (default)
             updated_body = existing_content + "<hr/>" + request.content
-        change_log = f"<p style='color:gray;font-size:smaller;margin:0;'>Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>"
+        change_log = (
+            f"<p style='color:gray;font-size:smaller;margin:0;'>"
+            f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+            f"</p>"
+        )
         if request.mode == "overwrite":
             updated_body = request.content + "\n" + change_log
         elif request.mode == "replace_section":
