@@ -3,6 +3,7 @@ import { Search, Download, Save, FileText, X, ChevronDown, Loader2, Settings, Vi
 import { FeatureType } from '../App';
 import { apiService, Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
+import PreviewModal from './PreviewModal';
 
 interface AIPoweredSearchProps {
   onClose: () => void;
