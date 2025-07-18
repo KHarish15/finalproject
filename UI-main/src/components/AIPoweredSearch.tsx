@@ -161,6 +161,13 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
       // Remove chatbot widget by class or id (adjust selector as needed)
       const chatbot = doc.querySelector('.YOUR_CHATBOT_CLASS, #YOUR_CHATBOT_ID');
       if (chatbot) chatbot.remove();
+
+      // Extract only the new content if a marker exists
+      const marker = '## Risk Areas Identified'; // or whatever your AI content starts with
+      const idx = doc.body.innerHTML.indexOf(marker);
+      if (idx !== -1) {
+        return doc.body.innerHTML.substring(idx);
+      }
       return doc.body.innerHTML;
     } catch {
       return html;
