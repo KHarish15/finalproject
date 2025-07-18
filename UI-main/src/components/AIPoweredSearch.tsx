@@ -455,51 +455,25 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
         </div>
       )}
       {showPreview && (
-        <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded">
-          <div className="flex justify-between items-center mb-2">
-            <h4 className="font-semibold">Preview of Updated Content</h4>
-            <button onClick={() => setShowPreview(false)} className="text-red-500 font-bold">Close Preview</button>
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30">
+          <div className="bg-confluence-blue/95 rounded-2xl shadow-2xl p-6 w-full max-w-3xl relative border border-white/20">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-semibold text-white text-lg">Preview of Updated Content</h4>
+              <button onClick={() => setShowPreview(false)} className="text-white hover:text-red-400 font-bold text-base px-3 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-400">Close Preview</button>
+            </div>
+            <div
+              ref={previewRef}
+              className="overflow-y-auto bg-white/90 rounded-xl p-6 border border-white/30 shadow-inner min-h-[120px] max-h-[400px] text-gray-900 text-base font-normal"
+              style={{
+                fontFamily: 'inherit',
+                boxSizing: 'border-box',
+                wordBreak: 'break-word',
+                whiteSpace: 'pre-wrap',
+                marginBottom: 0,
+              }}
+              dangerouslySetInnerHTML={{ __html: (previewContent || '').replace(/\]\]>/g, '').trimStart() }}
+            />
           </div>
-          <div
-            ref={previewRef}
-            className="mb-4"
-            style={{
-              background: '#fff', // White background for card look
-              color: '#222',      // Dark text for readability
-              padding: '20px 28px',
-              borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.07)', // Subtle shadow
-              border: '1px solid #e5e7eb', // Light border (optional)
-              maxHeight: 300,
-              overflowY: 'auto',
-              overflowX: 'auto',
-              minWidth: 0,
-              width: '100%',
-              boxSizing: 'border-box',
-              textAlign: 'left',
-              fontSize: '1rem', // Match your main response font size
-              fontFamily: 'inherit', // Inherit from parent
-            }}
-            dangerouslySetInnerHTML={{ __html: (previewContent || '').trimStart() }}
-          />
-          <h4 className="font-semibold mb-2">Diff</h4>
-          <pre
-            style={{
-              background: '#222',
-              color: '#fff',
-              padding: '8px',
-              borderRadius: '4px',
-              overflowX: 'auto',
-              maxHeight: 200,
-              overflowY: 'auto',
-              minWidth: 800,           // <-- Try this
-              width: '100vw',          // <-- Or this
-              whiteSpace: 'pre',
-              boxSizing: 'border-box'
-            }}
-          >
-            {previewDiff}
-          </pre>
         </div>
       )}
     </div>
