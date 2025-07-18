@@ -21,6 +21,7 @@ from bs4 import BeautifulSoup
 from io import BytesIO
 import difflib
 import base64
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -1207,14 +1208,25 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
             updated_body = new_content
         else:  # append (default)
             updated_body = existing_content + "<hr/>" + request.content
-        # Update page
+        change_log = f"<!-- Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} -->"
+        if request.mode == "overwrite":
+            updated_body = request.content + "\n" + change_log
+        elif request.mode == "replace_section":
+            # (add change_log to the replaced section or at the end)
+            updated_body = new_content + "\n" + change_log
+        else:  # append (default)
+            updated_body = existing_content + "<hr/>" + request.content + "\n" + change_log
+        # Update page (only once, after change_log is added)
         confluence.update_page(
             page_id=page_id,
             title=request.page_title,
             body=updated_body,
             representation="storage"
         )
-        return {"message": "Page updated successfully"}
+        return {
+            "message": "Page updated successfully",
+            "previous_version": existing_content  # This is the backup of the old content
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
