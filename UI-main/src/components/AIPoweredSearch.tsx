@@ -154,7 +154,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     }
   };
 
-  function cleanPreviewContent(html: string): string {
+  function cleanPreviewContent(html: string, numBlocks = 2): string {
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
@@ -162,24 +162,12 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
       const chatbot = doc.querySelector('.YOUR_CHATBOT_CLASS, #YOUR_CHATBOT_ID');
       if (chatbot) chatbot.remove();
 
-      // List of possible markers for new content
-      const markers = [
-        'The Academy Awards',
-        '## Additional Considerations',
-        '## Risk Areas Identified',
-        // Add more as needed for your AI content
-      ];
-
-      let idx = -1;
-      for (const marker of markers) {
-        const lastIdx = doc.body.innerHTML.lastIndexOf(marker);
-        if (lastIdx > idx) {
-          idx = lastIdx;
-        }
+      // Get all paragraphs and divs (or adjust as needed)
+      const blocks = Array.from(doc.body.querySelectorAll('p, div, section, ul, ol, pre, h1, h2, h3, h4, h5, h6'));
+      if (blocks.length >= numBlocks) {
+        return blocks.slice(-numBlocks).map(el => el.outerHTML).join('');
       }
-      if (idx !== -1) {
-        return doc.body.innerHTML.substring(idx);
-      }
+      // Fallback: return all content
       return doc.body.innerHTML;
     } catch {
       return html;
@@ -503,7 +491,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                 whiteSpace: 'pre-wrap',
                 marginBottom: 0,
             }}
-              dangerouslySetInnerHTML={{ __html: cleanPreviewContent((previewContent || '').replace(/]]>/g, '').trimStart()) }}
+              dangerouslySetInnerHTML={{ __html: previewContent }}
             />
           </div>
         </div>
