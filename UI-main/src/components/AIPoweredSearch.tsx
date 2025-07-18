@@ -162,9 +162,21 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
       const chatbot = doc.querySelector('.YOUR_CHATBOT_CLASS, #YOUR_CHATBOT_ID');
       if (chatbot) chatbot.remove();
 
-      // Extract only the new content if a marker exists
-      const marker = '## Risk Areas Identified'; // or whatever your AI content starts with
-      const idx = doc.body.innerHTML.indexOf(marker);
+      // List of possible markers for new content
+      const markers = [
+        'The Academy Awards',
+        '## Additional Considerations',
+        '## Risk Areas Identified',
+        // Add more as needed for your AI content
+      ];
+
+      let idx = -1;
+      for (const marker of markers) {
+        const lastIdx = doc.body.innerHTML.lastIndexOf(marker);
+        if (lastIdx > idx) {
+          idx = lastIdx;
+        }
+      }
       if (idx !== -1) {
         return doc.body.innerHTML.substring(idx);
       }
@@ -480,17 +492,17 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
             <div className="flex justify-between items-center mb-4">
               <h4 className="font-semibold text-white text-lg">Preview of Updated Content</h4>
               <button onClick={() => setShowPreview(false)} className="text-white hover:text-red-400 font-bold text-base px-3 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-400">Close Preview</button>
-            </div>
-            <div
-              ref={previewRef}
+          </div>
+          <div
+            ref={previewRef}
               className="overflow-y-auto bg-white/90 rounded-xl p-6 border border-white/30 shadow-inner min-h-[120px] max-h-[400px] text-gray-900 text-base font-normal"
-              style={{
+            style={{
                 fontFamily: 'inherit',
-                boxSizing: 'border-box',
+              boxSizing: 'border-box',
                 wordBreak: 'break-word',
                 whiteSpace: 'pre-wrap',
                 marginBottom: 0,
-              }}
+            }}
               dangerouslySetInnerHTML={{ __html: cleanPreviewContent((previewContent || '').replace(/]]>/g, '').trimStart()) }}
             />
           </div>
