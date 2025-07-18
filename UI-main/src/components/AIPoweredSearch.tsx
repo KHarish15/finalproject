@@ -154,6 +154,19 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     }
   };
 
+  function cleanPreviewContent(html: string): string {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      // Remove chatbot widget by class or id (adjust selector as needed)
+      const chatbot = doc.querySelector('.YOUR_CHATBOT_CLASS, #YOUR_CHATBOT_ID');
+      if (chatbot) chatbot.remove();
+      return doc.body.innerHTML;
+    } catch {
+      return html;
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-white flex items-center justify-center z-40 p-4">
       <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
@@ -471,7 +484,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                 whiteSpace: 'pre-wrap',
                 marginBottom: 0,
               }}
-              dangerouslySetInnerHTML={{ __html: (previewContent || '').replace(/\]\]>/g, '').trimStart() }}
+              dangerouslySetInnerHTML={{ __html: cleanPreviewContent((previewContent || '').replace(/]]>/g, '').trimStart()) }}
             />
           </div>
         </div>
