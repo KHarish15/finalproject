@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Zap, X, Send, Download, RotateCcw, FileText, Brain, CheckCircle, Loader2, MessageSquare, Plus, ChevronDown, Search, Video, Code, TrendingUp, TestTube, Image } from 'lucide-react';
 import type { AppMode } from '../App';
-import { apiService, Space } from '../services/api';
+import apiService, { Space } from '../services/api';
 
 interface AgentModeProps {
   onClose: () => void;
