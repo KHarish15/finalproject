@@ -1213,8 +1213,7 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 f"</p>"
             )
             highlighted_content = (
-                f'<div class="highlighted-change" style="background-color:#fffbe6; border-left:4px solid #ffd700; padding:8px; margin:8px 0;">'
-                f'<span style="color:green;font-weight:bold;">[New]</span> '
+                f'<div class="highlighted-change" style="color:green; background-color:#fffbe6; border-left:4px solid #ffd700; padding:8px; margin:8px 0;">'
                 f'{request.content}'
                 f'</div>'
             )
