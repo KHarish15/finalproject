@@ -175,6 +175,31 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     }
   }
 
+  const handleUndo = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/undo-last-change', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any auth headers if needed
+        },
+        body: JSON.stringify({
+          space_key: selectedSpace, // Replace with your actual variable
+          page_title: selectedPages[0] // Assuming you want to undo the last change to the first selected page
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        alert(`Undo successful! Restored to version ${data.restored_version}`);
+        // Optionally, refresh the page content here
+      } else {
+        alert(`Undo failed: ${data.detail}`);
+      }
+    } catch (error) {
+      alert('An error occurred while undoing the last change.');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-white flex items-center justify-center z-40 p-4">
       <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
@@ -339,6 +364,12 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                         className="text-sm text-confluence-blue hover:underline"
                       >
                         {showRawContent ? 'Show Formatted' : 'Show Raw Content'}
+                      </button>
+                      <button
+                        onClick={handleUndo}
+                        className="text-sm text-confluence-blue hover:underline"
+                      >
+                        Undo Last Change
                       </button>
                     </div>
                   </div>
