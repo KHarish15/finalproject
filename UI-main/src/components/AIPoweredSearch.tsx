@@ -35,6 +35,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   const [previewDiff, setPreviewDiff] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [isScheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const previewRef = useRef(null);
 
@@ -198,6 +199,10 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     } catch (error) {
       alert('An error occurred while undoing the last change.');
     }
+  };
+
+  const openScheduleModal = () => {
+    setScheduleModalOpen(true);
   };
 
   return (
@@ -370,6 +375,12 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                         className="text-sm text-confluence-blue hover:underline"
                       >
                         Undo Last Change
+                      </button>
+                      <button
+                        onClick={openScheduleModal}
+                        className="text-sm text-confluence-blue hover:underline"
+                      >
+                        Schedule Update
                       </button>
                     </div>
                   </div>
