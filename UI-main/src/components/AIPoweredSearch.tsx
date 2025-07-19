@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Download, Save, FileText, X, ChevronDown, Loader2, Settings, Video, Code, TrendingUp, TestTube, Image, CheckCircle } from 'lucide-react';
 import { FeatureType } from '../App';
-import { apiService, Space } from '../services/api';
+import apiService, { Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 import PreviewModal from './PreviewModal';
 import ScheduleUpdateModal from "./ScheduleUpdateModal"; // adjust path as needed

@@ -289,6 +289,21 @@ class ApiService {
       body: JSON.stringify(request),
     });
   }
+
+  async scheduleUpdate(request: {
+    space_key: string;
+    page_title: string;
+    content: string;
+    scheduled_time: string;
+    mode?: 'append' | 'overwrite' | 'replace_section';
+    heading_text?: string;
+  }): Promise<{ message: string; job_id: string }> {
+    return this.makeRequest<{ message: string; job_id: string }>('/schedule-update', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
 }
 
-export const apiService = new ApiService(); 
+const apiService = new ApiService();
+export default apiService; 

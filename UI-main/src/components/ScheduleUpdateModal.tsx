@@ -1,9 +1,15 @@
 import React, { useState } from "react";
 
-const ScheduleUpdateModal = ({ open, onClose, onSubmit }) => {
+interface ScheduleUpdateModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: { content: string; scheduledTime: string; mode: 'append' | 'overwrite' | 'replace_section' }) => void;
+}
+
+const ScheduleUpdateModal: React.FC<ScheduleUpdateModalProps> = ({ open, onClose, onSubmit }) => {
   const [content, setContent] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
-  const [mode, setMode] = useState("append");
+  const [mode, setMode] = useState<'append' | 'overwrite' | 'replace_section'>("append");
 
   if (!open) return null;
 
@@ -21,7 +27,7 @@ const ScheduleUpdateModal = ({ open, onClose, onSubmit }) => {
           value={scheduledTime}
           onChange={e => setScheduledTime(e.target.value)}
         />
-        <select value={mode} onChange={e => setMode(e.target.value)}>
+        <select value={mode} onChange={e => setMode(e.target.value as 'append' | 'overwrite' | 'replace_section')}>
           <option value="append">Append</option>
           <option value="overwrite">Overwrite</option>
           <option value="replace_section">Replace Section</option>
