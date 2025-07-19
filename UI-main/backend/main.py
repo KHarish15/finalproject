@@ -1302,7 +1302,14 @@ async def undo_last_change(request: UndoRequest, req: Request):
             raise HTTPException(status_code=400, detail="Previous version content not found.")
         prev_version_number = prev_content["previousVersion"]["number"]
         # Now fetch the previous version's body
-        prev_version_data = confluence.get(f"/rest/api/content/{page_id}/version/{prev_version_number}")
+        prev_version_data = confluence.get(
+            f"/rest/api/content/{page_id}",
+            params={
+                "status": "historical",
+                "version": prev_version_number,
+                "expand": "body.storage"
+            }
+        )
         if not prev_version_data or not prev_version_data.get("body") or not prev_version_data["body"].get("storage"):
             raise HTTPException(status_code=400, detail="Could not fetch previous version's body.")
         prev_body = prev_version_data["body"]["storage"]["value"]
