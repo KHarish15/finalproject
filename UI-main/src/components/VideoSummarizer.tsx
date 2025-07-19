@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Video, Download, Save, X, ChevronDown, ChevronRight, Loader2, Search, Code, TrendingUp, TestTube, MessageSquare, Check, ChevronUp, Image } from 'lucide-react';
 import { FeatureType } from '../App';
-import { apiService, Space } from '../services/api';
+import apiService, { Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 
 interface VideoSummarizerProps {
