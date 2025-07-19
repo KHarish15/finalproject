@@ -1213,8 +1213,8 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 f"</p>"
             )
             highlighted_content = (
-                f'<div class="highlighted-change" style="background-color:#fffbe6; border-left:4px solid #ffd700; padding:8px; margin:8px 0;">'
-                f'<ac:structured-macro ac:name="color"><ac:parameter ac:name="color">Green</ac:parameter><ac:rich-text-body>{request.content}</ac:rich-text-body></ac:structured-macro>'
+                f'<div class="highlighted-change" style="background-color:#d4edda; border-left:4px solid #28a745; padding:8px; margin:8px 0;">'
+                f'{request.content}'
                 f'</div>'
             )
             updated_body = existing_content + "<hr/>" + highlighted_content + "\n" + change_log
