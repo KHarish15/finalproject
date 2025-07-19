@@ -1297,9 +1297,7 @@ async def undo_last_change(request: UndoRequest, req: Request):
         page_id = page["id"]
         # Fetch previous version's content
         prev_version_num = current_version - 1
-        prev_version = confluence.get_page_by_id(page_id, expand=f"body.storage,version")
-        # The API does not directly fetch old content by version, so use get_content_history or get_content_version
-        prev_content = confluence.get_content_history(page_id, expand="previousVersion")
+        prev_content = confluence.get_content_history(page_id)
         if not prev_content or not prev_content.get("previousVersion"):
             raise HTTPException(status_code=400, detail="Previous version content not found.")
         prev_version_number = prev_content["previousVersion"]["number"]
