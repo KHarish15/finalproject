@@ -177,7 +177,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
 
   const handleUndo = async () => {
     try {
-      const response = await fetch('http://localhost:8000/undo-last-change', {
+      const response = await fetch('https://finalproject-75ss.onrender.com/undo-last-change', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
