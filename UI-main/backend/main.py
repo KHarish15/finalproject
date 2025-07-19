@@ -1207,6 +1207,11 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
             updated_body = new_content
         else:  # append (default)
+            change_log = (
+                f"<p style='color:gray;font-size:smaller;margin:0;'>"
+                f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+                f"</p>"
+            )
             highlighted_content = (
                 f'<div class="highlighted-change" style="background-color:#fffbe6; border-left:4px solid #ffd700; padding:8px; margin:8px 0;">'
                 f'<span style="color:green;font-weight:bold;">[New]</span> '
