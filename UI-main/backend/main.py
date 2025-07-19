@@ -1225,7 +1225,12 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
             updated_body = new_content
         else:  # append (default)
-            updated_body = existing_content + "<hr/>" + request.content
+            change_log = (
+                f"<p style='color:gray;font-size:smaller;margin:0;'>"
+                f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+                f"</p>"
+            )
+            updated_body = existing_content + "<hr/>" + request.content + "\n" + change_log
         # Update page (only once, after change_log is added)
         confluence.update_page(
             page_id=page_id,
@@ -1420,7 +1425,12 @@ def perform_scheduled_update(space_key, page_title, content, mode, heading_text)
                 return f"Heading '{heading_text}' not found in page."
             updated_body = new_content
         else:  # append (default)
-            updated_body = existing_content + "<hr/>" + content
+            change_log = (
+                f"<p style='color:gray;font-size:smaller;margin:0;'>"
+                f"<strong>🕒 Scheduled update by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+                f"</p>"
+            )
+            updated_body = existing_content + "<hr/>" + content + "\n" + change_log
         confluence.update_page(
             page_id=page_id,
             title=page_title,

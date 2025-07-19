@@ -4,6 +4,7 @@ import { FeatureType } from '../App';
 import { apiService, Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 import PreviewModal from './PreviewModal';
+import ScheduleUpdateModal from "./ScheduleUpdateModal"; // adjust path as needed
 
 interface AIPoweredSearchProps {
   onClose: () => void;
@@ -203,6 +204,27 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
 
   const openScheduleModal = () => {
     setScheduleModalOpen(true);
+  };
+
+  const handleScheduleUpdate = async (data: { content: string; scheduledTime: string; mode: string }) => {
+    try {
+      const { space, page } = getConfluenceSpaceAndPageFromUrl();
+      if (!space || !page) {
+        alert('Confluence space or page not specified in macro src URL.');
+        return;
+      }
+      await apiService.scheduleUpdate({
+        space_key: space,
+        page_title: page,
+        content: data.content,
+        scheduled_time: data.scheduledTime,
+        mode: data.mode,
+      });
+      alert('Update scheduled successfully!');
+      setScheduleModalOpen(false);
+    } catch (err: any) {
+      alert('Failed to schedule update: ' + (err.message || err));
+    }
   };
 
   return (
@@ -539,6 +561,11 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
           </div>
         </div>
       )}
+      <ScheduleUpdateModal
+        open={isScheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        onSubmit={handleScheduleUpdate}
+      />
     </div>
   );
 };
