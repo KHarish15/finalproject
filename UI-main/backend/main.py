@@ -23,8 +23,7 @@ import difflib
 import base64
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.base import JobLookupError
-from datetime import datetime, timedelta
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 # Load environment variables
 load_dotenv()
@@ -51,7 +50,12 @@ if not GEMINI_API_KEY:
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Initialize APScheduler
-scheduler = BackgroundScheduler()
+import os
+
+jobstores = {
+    'default': SQLAlchemyJobStore(url=os.getenv("DATABASE_URL"))
+}
+scheduler = BackgroundScheduler(jobstores=jobstores)
 scheduler.start()
 
 # In-memory job tracking (for demo; use persistent storage for production)
@@ -1348,7 +1352,7 @@ async def schedule_update(request: ScheduledUpdateRequest):
         # Remove job if already exists
         try:
             scheduler.remove_job(job_id)
-        except JobLookupError:
+        except Exception: # Changed from JobLookupError to Exception to catch other APScheduler errors
             pass
         # Schedule the job
         scheduler.add_job(
@@ -1382,8 +1386,6 @@ async def cancel_scheduled_update(job_id: str):
         scheduler.remove_job(job_id)
         scheduled_jobs.pop(job_id, None)
         return {"message": f"Scheduled update {job_id} cancelled."}
-    except JobLookupError:
-        raise HTTPException(status_code=404, detail="Job not found.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1437,6 +1439,7 @@ def perform_scheduled_update(space_key, page_title, content, mode, heading_text)
             body=updated_body,
             representation="storage"
         )
+        print(f"Running scheduled update for {space_key} {page_title} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         return f"Page '{page_title}' updated successfully at scheduled time."
     except Exception as e:
         return f"Scheduled update failed: {str(e)}"
