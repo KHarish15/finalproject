@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Code, FileText, Download, Save, X, ChevronDown, Loader2, Zap, Search, Video, TrendingUp, TestTube, Image } from 'lucide-react';
 import { FeatureType } from '../App';
-import { apiService, Space } from '../services/api';
+import apiService, { Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 
 interface CodeAssistantProps {

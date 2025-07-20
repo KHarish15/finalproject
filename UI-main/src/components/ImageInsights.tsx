@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Image, Download, Save, X, ChevronDown, Loader2, MessageSquare, BarChart3, Search, Video, Code, TrendingUp, TestTube, Eye, Zap } from 'lucide-react';
 import { FeatureType } from '../App';
-import { apiService } from '../services/api';
+import apiService, { Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 
 interface ImageInsightsProps {

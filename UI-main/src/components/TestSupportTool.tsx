@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TestTube, Code, FileCheck, Download, Save, X, ChevronDown, Loader2, MessageSquare, Play, Search, Video, TrendingUp, Image } from 'lucide-react';
 import { FeatureType } from '../App';
-import { apiService, Space } from '../services/api';
+import apiService, { Space } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 
