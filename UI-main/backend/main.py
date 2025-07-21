@@ -1299,6 +1299,7 @@ async def undo_last_change(request: UndoRequest, req: Request):
     Undo the last appended block to a Confluence page (removes content from the last <hr />, <hr/>, or last timestamped block to the end).
     """
     try:
+        import re
         confluence = init_confluence()
         space_key = request.space_key
         page_title = request.page_title
@@ -1308,22 +1309,23 @@ async def undo_last_change(request: UndoRequest, req: Request):
             raise HTTPException(status_code=404, detail="Page not found")
         page_id = page["id"]
         existing_content = page["body"]["storage"]["value"]
+        # Normalize line endings and trim trailing whitespace
+        content = existing_content.replace('\r\n', '\n').replace('\r', '\n').rstrip()
         # Try to find the last <hr /> or <hr/>
-        last_hr_index = max(existing_content.rfind("<hr />"), existing_content.rfind("<hr/>") )
-        # If not found, look for the last timestamped block
+        last_hr_index = max(content.rfind("<hr />"), content.rfind("<hr/>") )
+        # If not found, look for the last timestamped block (very flexible)
         if last_hr_index == -1:
-            import re
-            # Regex to match the last timestamped 'Updated by AI Assistant on ...' line (flexible)
-            timestamp_pattern = re.compile(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)", re.IGNORECASE)
-            matches = list(timestamp_pattern.finditer(existing_content))
+            # Regex: <p ...><strong>🕒 Updated by AI Assistant on ...</strong></p> (any attributes, any whitespace, even at end)
+            timestamp_pattern = re.compile(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)(\s*)$", re.IGNORECASE | re.MULTILINE)
+            matches = list(timestamp_pattern.finditer(content))
             if matches:
                 last_match = matches[-1]
                 last_timestamp_index = last_match.start()
-                new_content = existing_content[:last_timestamp_index].rstrip()
+                new_content = content[:last_timestamp_index].rstrip()
             else:
                 raise HTTPException(status_code=400, detail="No appended or timestamped block found to undo.")
         else:
-            new_content = existing_content[:last_hr_index].rstrip()
+            new_content = content[:last_hr_index].rstrip()
         # Update the page with the new content
         confluence.update_page(
             page_id=page_id,
