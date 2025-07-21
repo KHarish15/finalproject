@@ -365,12 +365,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                       >
                         {showRawContent ? 'Show Formatted' : 'Show Raw Content'}
                       </button>
-                      <button
-                        onClick={handleUndo}
-                        className="text-sm text-confluence-blue hover:underline"
-                      >
-                        Undo Last Change
-                      </button>
                     </div>
                   </div>
                   
