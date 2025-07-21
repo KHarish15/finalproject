@@ -1194,7 +1194,12 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
         existing_content = page["body"]["storage"]["value"]
         updated_body = existing_content
         if request.mode == "overwrite":
-            updated_body = request.content
+            change_log = (
+                f"<p style='color:gray;font-size:smaller;margin:0;'>"
+                f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+                f"</p>"
+            )
+            updated_body = "<hr/>" + request.content + "\n" + change_log
         elif request.mode == "replace_section":
             if not request.heading_text:
                 raise HTTPException(status_code=400, detail="heading_text must be provided for replace_section mode.")
