@@ -1296,7 +1296,7 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
 @app.post("/undo-last-change")
 async def undo_last_change(request: UndoRequest, req: Request):
     """
-    Undo the last appended block to a Confluence page (removes content from the last <hr />, <hr/>, or last timestamped block to the end).
+    Undo the last appended block to a Confluence page (removes content from the last <hr />, <hr/>, or last timestamped block to the end, ignoring empty <p /> tags).
     """
     try:
         import re
@@ -1311,8 +1311,10 @@ async def undo_last_change(request: UndoRequest, req: Request):
         existing_content = page["body"]["storage"]["value"]
         # Normalize line endings and trim trailing whitespace
         content = existing_content.replace('\r\n', '\n').replace('\r', '\n').rstrip()
+        # Remove trailing empty <p /> tags for matching
+        content = re.sub(r'(\s*<p\s*/>\s*)+$', '', content, flags=re.IGNORECASE)
         # Try to find the last <hr /> or <hr/>
-        last_hr_index = max(content.rfind("<hr />"), content.rfind("<hr/>") )
+        last_hr_index = max(content.rfind("<hr />"), content.rfind("<hr/>"))
         # If not found, look for the last timestamped block (very flexible)
         if last_hr_index == -1:
             # Regex: <p ...><strong>🕒 Updated by AI Assistant on ...</strong></p> (any attributes, any whitespace, even at end)
