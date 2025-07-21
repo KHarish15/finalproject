@@ -1296,7 +1296,7 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
 @app.post("/undo-last-change")
 async def undo_last_change(request: UndoRequest, req: Request):
     """
-    Undo the last appended block to a Confluence page (removes content from the last <hr/> or last timestamped block to the end).
+    Undo the last appended block to a Confluence page (removes content from the last <hr />, <hr/>, or last timestamped block to the end).
     """
     try:
         confluence = init_confluence()
@@ -1308,13 +1308,13 @@ async def undo_last_change(request: UndoRequest, req: Request):
             raise HTTPException(status_code=404, detail="Page not found")
         page_id = page["id"]
         existing_content = page["body"]["storage"]["value"]
-        # Try to find the last <hr/>
-        last_hr_index = existing_content.rfind("<hr/>")
+        # Try to find the last <hr /> or <hr/>
+        last_hr_index = max(existing_content.rfind("<hr />"), existing_content.rfind("<hr/>") )
         # If not found, look for the last timestamped block
         if last_hr_index == -1:
             import re
-            # Regex to match the last timestamped 'Updated by AI Assistant on ...' line
-            timestamp_pattern = re.compile(r"(<p[^>]*><strong>.*?Updated by AI Assistant on [^<]+</strong></p>)(?![\s\S]*<p[^>]*><strong>.*?Updated by AI Assistant on [^<]+</strong></p>)", re.IGNORECASE)
+            # Regex to match the last timestamped 'Updated by AI Assistant on ...' line (flexible)
+            timestamp_pattern = re.compile(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)", re.IGNORECASE)
             matches = list(timestamp_pattern.finditer(existing_content))
             if matches:
                 last_match = matches[-1]
