@@ -22,6 +22,8 @@ from io import BytesIO
 import difflib
 import base64
 from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +48,18 @@ if not GEMINI_API_KEY:
 
 # Configure Gemini AI
 genai.configure(api_key=GEMINI_API_KEY)
+
+# Initialize APScheduler
+import os
+
+jobstores = {
+    'default': SQLAlchemyJobStore(url=os.getenv("DATABASE_URL"))
+}
+scheduler = BackgroundScheduler(jobstores=jobstores)
+scheduler.start()
+
+# In-memory job tracking (for demo; use persistent storage for production)
+scheduled_jobs = {}
 
 # Pydantic models for request/response
 class SearchRequest(BaseModel):
@@ -112,6 +126,14 @@ class SaveToConfluenceRequest(BaseModel):
 class UndoRequest(BaseModel):
     space_key: str
     page_title: str
+
+class ScheduledUpdateRequest(BaseModel):
+    space_key: str
+    page_title: str
+    content: str
+    mode: Optional[str] = "append"  # "append", "overwrite", "replace_section"
+    heading_text: Optional[str] = None  # Used if mode == "replace_section"
+    scheduled_time: datetime  # ISO format string
 
 # Helper functions
 def remove_emojis(text):
@@ -1193,13 +1215,8 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
         page_id = page["id"]
         existing_content = page["body"]["storage"]["value"]
         updated_body = existing_content
-        change_log = (
-            f"<p style='color:gray;font-size:smaller;margin:0;'>"
-            f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
-            f"</p>"
-        )
         if request.mode == "overwrite":
-            updated_body = "<hr/>" + request.content + "\n" + change_log
+            updated_body = request.content
         elif request.mode == "replace_section":
             if not request.heading_text:
                 raise HTTPException(status_code=400, detail="heading_text must be provided for replace_section mode.")
@@ -1212,6 +1229,11 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
             updated_body = new_content
         else:  # append (default)
+            change_log = (
+                f"<p style='color:gray;font-size:smaller;margin:0;'>"
+                f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+                f"</p>"
+            )
             updated_body = existing_content + "<hr/>" + request.content + "\n" + change_log
         # Update page (only once, after change_log is added)
         confluence.update_page(
@@ -1274,62 +1296,97 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
 @app.post("/undo-last-change")
 async def undo_last_change(request: UndoRequest, req: Request):
     """
-    Undo the last appended block to a Confluence page (removes content from the second-last <hr />, <hr/>, or timestamped block onward, making undo robust even if the last marker is at the end).
+    Undo the last change to a Confluence page by restoring the previous version's content.
     """
     try:
-        import re
         confluence = init_confluence()
         space_key = request.space_key
         page_title = request.page_title
-        # Get the current page content
-        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='body.storage')
+        # Get the current page with version info
+        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='version,body.storage')
         if not page:
             raise HTTPException(status_code=404, detail="Page not found")
+        current_version = page.get("version", {}).get("number", 1)
+        if current_version <= 1:
+            raise HTTPException(status_code=400, detail="No previous version to restore.")
         page_id = page["id"]
-        existing_content = page["body"]["storage"]["value"]
-        # Normalize line endings and trim trailing whitespace
-        content = existing_content.replace('\r\n', '\n').replace('\r', '\n').rstrip()
-        # Remove trailing empty <p /> tags for matching
-        content = re.sub(r'(\s*<p\s*/>\s*)+$', '', content, flags=re.IGNORECASE)
-        # Print the first and last 500 characters for debugging
-        print("Content head:", repr(content[:500]))
-        print("Content tail:", repr(content[-500:]))
-        # Find all <hr>, <hr/>, <hr />, <hr ...> markers
-        hr_indices = [m.start() for m in re.finditer(r"<hr[^>]*>", content)]
-        print("hr_indices:", hr_indices)
-        # Find all timestamped <p> markers
-        timestamp_matches = list(re.finditer(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)", content, re.IGNORECASE))
-        timestamp_indices = [m.start() for m in timestamp_matches]
-        print("timestamp_indices:", timestamp_indices)
-        # Combine and sort all marker positions
-        all_markers = sorted(hr_indices + timestamp_indices)
-        print("Content length:", len(content))
-        print("All marker positions:", all_markers)
-        if all_markers:
-            print("Content at last marker:", repr(content[all_markers[-1]:all_markers[-1]+100]))
-            if len(all_markers) > 1:
-                print("Content at second-last marker:", repr(content[all_markers[-2]:all_markers[-2]+100]))
-        if not all_markers:
-            raise HTTPException(status_code=400, detail="No appended or timestamped block found to undo.")
-        if len(all_markers) == 1:
-            # Only one marker → delete everything from that marker
-            new_content = content[:all_markers[0]].rstrip()
-        else:
-            # Multiple markers → remove from the second-last one
-            new_content = content[:all_markers[-2]].rstrip()
-        # Update the page with the new content
-        confluence.update_page(
+        # Fetch previous version's content
+        prev_version_num = current_version - 1
+        prev_content = confluence.get_content_history(page_id)
+        if not prev_content or not prev_content.get("previousVersion"):
+            raise HTTPException(status_code=400, detail="Previous version content not found.")
+        prev_version_number = prev_content["previousVersion"]["number"]
+        # Now fetch the previous version's body
+        prev_version_data = confluence.get(
+            f"/rest/api/content/{page_id}",
+            params={
+                "status": "historical",
+                "version": prev_version_number,
+                "expand": "body.storage"
+            }
+        )
+        if not prev_version_data or not prev_version_data.get("body") or not prev_version_data["body"].get("storage"):
+            raise HTTPException(status_code=400, detail="Could not fetch previous version's body.")
+        prev_body = prev_version_data["body"]["storage"]["value"]
+        # Overwrite the page with previous content
+        updated = confluence.update_page(
             page_id=page_id,
             title=page_title,
-            body=new_content,
+            body=prev_body,
             representation="storage"
         )
         return {
-            "message": f"Last appended or timestamped block removed from '{page_title}' successfully."
+            "message": f"Page '{page_title}' rolled back to version {prev_version_number} successfully.",
+            "restored_version": prev_version_number
         }
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())  # This will print the full error to your logs
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/schedule-update")
+async def schedule_update(request: ScheduledUpdateRequest):
+    """
+    Schedule a Confluence page update at a specific future date/time.
+    """
+    try:
+        job_id = f"{request.space_key}_{request.page_title}_{request.scheduled_time.timestamp()}"
+        # Remove job if already exists
+        try:
+            scheduler.remove_job(job_id)
+        except Exception: # Changed from JobLookupError to Exception to catch other APScheduler errors
+            pass
+        # Schedule the job
+        scheduler.add_job(
+            perform_scheduled_update,
+            'date',
+            run_date=request.scheduled_time,
+            args=[request.space_key, request.page_title, request.content, request.mode, request.heading_text],
+            id=job_id
+        )
+        scheduled_jobs[job_id] = {
+            "space_key": request.space_key,
+            "page_title": request.page_title,
+            "scheduled_time": request.scheduled_time.isoformat(),
+            "mode": request.mode,
+            "heading_text": request.heading_text,
+            "content_preview": request.content[:100]
+        }
+        return {"message": f"Update scheduled for {request.scheduled_time}.", "job_id": job_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/scheduled-updates")
+async def list_scheduled_updates():
+    """List all scheduled page updates."""
+    return {"scheduled_updates": list(scheduled_jobs.values())}
+
+@app.delete("/scheduled-updates/{job_id}")
+async def cancel_scheduled_update(job_id: str):
+    """Cancel a scheduled page update by job_id."""
+    try:
+        scheduler.remove_job(job_id)
+        scheduled_jobs.pop(job_id, None)
+        return {"message": f"Scheduled update {job_id} cancelled."}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/test")
@@ -1346,6 +1403,46 @@ def get_actual_api_key_from_identifier(identifier: str) -> str:
     fallback = os.getenv('GENAI_API_KEY_1')
     print(f"Falling back to GENAI_API_KEY_1, value: {fallback}")
     return fallback
+
+def perform_scheduled_update(space_key, page_title, content, mode, heading_text):
+    try:
+        confluence = init_confluence()
+        space_key = auto_detect_space(confluence, space_key)
+        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='body.storage')
+        if not page:
+            return f"Page '{page_title}' not found in space '{space_key}'."
+        page_id = page["id"]
+        existing_content = page["body"]["storage"]["value"]
+        updated_body = existing_content
+        if mode == "overwrite":
+            updated_body = content
+        elif mode == "replace_section":
+            if not heading_text:
+                return "heading_text must be provided for replace_section mode."
+            heading_pattern = re.compile(rf"(<h[1-6][^>]*>\s*{re.escape(heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.DOTALL | re.IGNORECASE)
+            def replacer(match):
+                return f"{match.group(1)}\n{content}\n"
+            new_content, count = heading_pattern.subn(replacer, existing_content, count=1)
+            if count == 0:
+                return f"Heading '{heading_text}' not found in page."
+            updated_body = new_content
+        else:  # append (default)
+            change_log = (
+                f"<p style='color:gray;font-size:smaller;margin:0;'>"
+                f"<strong>🕒 Scheduled update by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+                f"</p>"
+            )
+            updated_body = existing_content + "<hr/>" + content + "\n" + change_log
+        confluence.update_page(
+            page_id=page_id,
+            title=page_title,
+            body=updated_body,
+            representation="storage"
+        )
+        print(f"Running scheduled update for {space_key} {page_title} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        return f"Page '{page_title}' updated successfully at scheduled time."
+    except Exception as e:
+        return f"Scheduled update failed: {str(e)}"
 
 if __name__ == "__main__":
     import uvicorn
