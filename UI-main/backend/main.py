@@ -1193,12 +1193,12 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
         page_id = page["id"]
         existing_content = page["body"]["storage"]["value"]
         updated_body = existing_content
+        change_log = (
+            f"<p style='color:gray;font-size:smaller;margin:0;'>"
+            f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
+            f"</p>"
+        )
         if request.mode == "overwrite":
-            change_log = (
-                f"<p style='color:gray;font-size:smaller;margin:0;'>"
-                f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
-                f"</p>"
-            )
             updated_body = "<hr/>" + request.content + "\n" + change_log
         elif request.mode == "replace_section":
             if not request.heading_text:
@@ -1212,11 +1212,6 @@ async def save_to_confluence(request: SaveToConfluenceRequest, req: Request):
                 raise HTTPException(status_code=404, detail=f"Heading '{request.heading_text}' not found in page.")
             updated_body = new_content
         else:  # append (default)
-            change_log = (
-                f"<p style='color:gray;font-size:smaller;margin:0;'>"
-                f"<strong>🕒 Updated by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
-                f"</p>"
-            )
             updated_body = existing_content + "<hr/>" + request.content + "\n" + change_log
         # Update page (only once, after change_log is added)
         confluence.update_page(
