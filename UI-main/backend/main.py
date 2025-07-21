@@ -1322,6 +1322,8 @@ async def undo_last_change(request: UndoRequest, req: Request):
             "message": f"Last appended or timestamped block removed from '{page_title}' successfully."
         }
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())  # This will print the full error to your logs
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/test")
