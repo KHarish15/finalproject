@@ -4,7 +4,6 @@ import { FeatureType } from '../App';
 import apiService, { Space } from '../services/api';
 import { getConfluenceSpaceAndPageFromUrl } from '../utils/urlUtils';
 import PreviewModal from './PreviewModal';
-import ScheduleUpdateModal from "./ScheduleUpdateModal"; // adjust path as needed
 
 interface AIPoweredSearchProps {
   onClose: () => void;
@@ -36,7 +35,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   const [previewDiff, setPreviewDiff] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [isScheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   const previewRef = useRef(null);
 
@@ -199,31 +197,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
       }
     } catch (error) {
       alert('An error occurred while undoing the last change.');
-    }
-  };
-
-  const openScheduleModal = () => {
-    setScheduleModalOpen(true);
-  };
-
-  const handleScheduleUpdate = async (data: { content: string; scheduledTime: string; mode: string }) => {
-    try {
-      const { space, page } = getConfluenceSpaceAndPageFromUrl();
-      if (!space || !page) {
-        alert('Confluence space or page not specified in macro src URL.');
-        return;
-      }
-      await apiService.scheduleUpdate({
-        space_key: space,
-        page_title: page,
-        content: data.content,
-        scheduled_time: data.scheduledTime,
-        mode: data.mode,
-      });
-      alert('Update scheduled successfully!');
-      setScheduleModalOpen(false);
-    } catch (err: any) {
-      alert('Failed to schedule update: ' + (err.message || err));
     }
   };
 
@@ -398,12 +371,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                       >
                         Undo Last Change
                       </button>
-                      <button
-                        onClick={openScheduleModal}
-                        className="text-sm text-confluence-blue hover:underline"
-                      >
-                        Schedule Update
-                      </button>
                     </div>
                   </div>
                   
@@ -561,11 +528,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
           </div>
         </div>
       )}
-      <ScheduleUpdateModal
-        open={isScheduleModalOpen}
-        onClose={() => setScheduleModalOpen(false)}
-        onSubmit={handleScheduleUpdate}
-      />
     </div>
   );
 };

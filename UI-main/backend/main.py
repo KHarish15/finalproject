@@ -22,8 +22,6 @@ from io import BytesIO
 import difflib
 import base64
 from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 # Load environment variables
 load_dotenv()
@@ -48,18 +46,6 @@ if not GEMINI_API_KEY:
 
 # Configure Gemini AI
 genai.configure(api_key=GEMINI_API_KEY)
-
-# Initialize APScheduler
-import os
-
-jobstores = {
-    'default': SQLAlchemyJobStore(url=os.getenv("DATABASE_URL"))
-}
-scheduler = BackgroundScheduler(jobstores=jobstores)
-scheduler.start()
-
-# In-memory job tracking (for demo; use persistent storage for production)
-scheduled_jobs = {}
 
 # Pydantic models for request/response
 class SearchRequest(BaseModel):
@@ -126,14 +112,6 @@ class SaveToConfluenceRequest(BaseModel):
 class UndoRequest(BaseModel):
     space_key: str
     page_title: str
-
-class ScheduledUpdateRequest(BaseModel):
-    space_key: str
-    page_title: str
-    content: str
-    mode: Optional[str] = "append"  # "append", "overwrite", "replace_section"
-    heading_text: Optional[str] = None  # Used if mode == "replace_section"
-    scheduled_time: datetime  # ISO format string
 
 # Helper functions
 def remove_emojis(text):
@@ -1342,53 +1320,6 @@ async def undo_last_change(request: UndoRequest, req: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/schedule-update")
-async def schedule_update(request: ScheduledUpdateRequest):
-    """
-    Schedule a Confluence page update at a specific future date/time.
-    """
-    try:
-        job_id = f"{request.space_key}_{request.page_title}_{request.scheduled_time.timestamp()}"
-        # Remove job if already exists
-        try:
-            scheduler.remove_job(job_id)
-        except Exception: # Changed from JobLookupError to Exception to catch other APScheduler errors
-            pass
-        # Schedule the job
-        scheduler.add_job(
-            perform_scheduled_update,
-            'date',
-            run_date=request.scheduled_time,
-            args=[request.space_key, request.page_title, request.content, request.mode, request.heading_text],
-            id=job_id
-        )
-        scheduled_jobs[job_id] = {
-            "space_key": request.space_key,
-            "page_title": request.page_title,
-            "scheduled_time": request.scheduled_time.isoformat(),
-            "mode": request.mode,
-            "heading_text": request.heading_text,
-            "content_preview": request.content[:100]
-        }
-        return {"message": f"Update scheduled for {request.scheduled_time}.", "job_id": job_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/scheduled-updates")
-async def list_scheduled_updates():
-    """List all scheduled page updates."""
-    return {"scheduled_updates": list(scheduled_jobs.values())}
-
-@app.delete("/scheduled-updates/{job_id}")
-async def cancel_scheduled_update(job_id: str):
-    """Cancel a scheduled page update by job_id."""
-    try:
-        scheduler.remove_job(job_id)
-        scheduled_jobs.pop(job_id, None)
-        return {"message": f"Scheduled update {job_id} cancelled."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @app.get("/test")
 async def test_endpoint():
     """Test endpoint to verify backend is working"""
@@ -1403,46 +1334,6 @@ def get_actual_api_key_from_identifier(identifier: str) -> str:
     fallback = os.getenv('GENAI_API_KEY_1')
     print(f"Falling back to GENAI_API_KEY_1, value: {fallback}")
     return fallback
-
-def perform_scheduled_update(space_key, page_title, content, mode, heading_text):
-    try:
-        confluence = init_confluence()
-        space_key = auto_detect_space(confluence, space_key)
-        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='body.storage')
-        if not page:
-            return f"Page '{page_title}' not found in space '{space_key}'."
-        page_id = page["id"]
-        existing_content = page["body"]["storage"]["value"]
-        updated_body = existing_content
-        if mode == "overwrite":
-            updated_body = content
-        elif mode == "replace_section":
-            if not heading_text:
-                return "heading_text must be provided for replace_section mode."
-            heading_pattern = re.compile(rf"(<h[1-6][^>]*>\s*{re.escape(heading_text)}\s*</h[1-6]>)(.*?)(?=<h[1-6][^>]*>|$)", re.DOTALL | re.IGNORECASE)
-            def replacer(match):
-                return f"{match.group(1)}\n{content}\n"
-            new_content, count = heading_pattern.subn(replacer, existing_content, count=1)
-            if count == 0:
-                return f"Heading '{heading_text}' not found in page."
-            updated_body = new_content
-        else:  # append (default)
-            change_log = (
-                f"<p style='color:gray;font-size:smaller;margin:0;'>"
-                f"<strong>🕒 Scheduled update by AI Assistant on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</strong>"
-                f"</p>"
-            )
-            updated_body = existing_content + "<hr/>" + content + "\n" + change_log
-        confluence.update_page(
-            page_id=page_id,
-            title=page_title,
-            body=updated_body,
-            representation="storage"
-        )
-        print(f"Running scheduled update for {space_key} {page_title} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        return f"Page '{page_title}' updated successfully at scheduled time."
-    except Exception as e:
-        return f"Scheduled update failed: {str(e)}"
 
 if __name__ == "__main__":
     import uvicorn
