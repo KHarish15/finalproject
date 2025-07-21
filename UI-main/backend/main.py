@@ -109,10 +109,6 @@ class SaveToConfluenceRequest(BaseModel):
     mode: Optional[str] = "append"  # "append", "overwrite", "replace_section"
     heading_text: Optional[str] = None  # Used if mode == "replace_section"
 
-class UndoRequest(BaseModel):
-    space_key: str
-    page_title: str
-
 # Helper functions
 def remove_emojis(text):
     emoji_pattern = re.compile(
@@ -1088,7 +1084,7 @@ async def create_chart(request: ChartRequest, req: Request):
             raise HTTPException(status_code=400, detail="Failed to extract chart data from image")
         
         # Create chart based on type
-        if request.chart_type == "Grouped Bar":
+        if request.chart_type == "Grouped Bar":         
             melted = df.melt(id_vars=[df.columns[0]], var_name="Group", value_name="Count")
             plt.figure(figsize=(10, 6))
             sns.barplot(data=melted, x=melted.columns[0], y="Count", hue="Group")
@@ -1267,55 +1263,6 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
         return {
             "preview_content": request.content,
             "diff": "\n".join(diff)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/undo-last-change")
-async def undo_last_change(request: UndoRequest, req: Request):
-    """
-    Undo the last change to a Confluence page by restoring the previous version's content.
-    """
-    try:
-        confluence = init_confluence()
-        space_key = request.space_key
-        page_title = request.page_title
-        # Get the current page with version info
-        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='version,body.storage')
-        if not page:
-            raise HTTPException(status_code=404, detail="Page not found")
-        current_version = page.get("version", {}).get("number", 1)
-        if current_version <= 1:
-            raise HTTPException(status_code=400, detail="No previous version to restore.")
-        page_id = page["id"]
-        # Fetch previous version's content
-        prev_version_num = current_version - 1
-        prev_content = confluence.get_content_history(page_id)
-        if not prev_content or not prev_content.get("previousVersion"):
-            raise HTTPException(status_code=400, detail="Previous version content not found.")
-        prev_version_number = prev_content["previousVersion"]["number"]
-        # Now fetch the previous version's body
-        prev_version_data = confluence.get(
-            f"/rest/api/content/{page_id}",
-            params={
-                "status": "historical",
-                "version": prev_version_number,
-                "expand": "body.storage"
-            }
-        )
-        if not prev_version_data or not prev_version_data.get("body") or not prev_version_data["body"].get("storage"):
-            raise HTTPException(status_code=400, detail="Could not fetch previous version's body.")
-        prev_body = prev_version_data["body"]["storage"]["value"]
-        # Overwrite the page with previous content
-        updated = confluence.update_page(
-            page_id=page_id,
-            title=page_title,
-            body=prev_body,
-            representation="storage"
-        )
-        return {
-            "message": f"Page '{page_title}' rolled back to version {prev_version_number} successfully.",
-            "restored_version": prev_version_number
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
