@@ -1296,48 +1296,34 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
 @app.post("/undo-last-change")
 async def undo_last_change(request: UndoRequest, req: Request):
     """
-    Undo the last change to a Confluence page by restoring the previous version's content.
+    Undo the last appended block to a Confluence page (removes content from the last <hr/> to the end).
     """
     try:
         confluence = init_confluence()
         space_key = request.space_key
         page_title = request.page_title
-        # Get the current page with version info
-        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='version,body.storage')
+        # Get the current page content
+        page = confluence.get_page_by_title(space=space_key, title=page_title, expand='body.storage')
         if not page:
             raise HTTPException(status_code=404, detail="Page not found")
-        current_version = page.get("version", {}).get("number", 1)
-        if current_version <= 1:
-            raise HTTPException(status_code=400, detail="No previous version to restore.")
         page_id = page["id"]
-        # Fetch previous version's content
-        prev_version_num = current_version - 1
-        prev_content = confluence.get_content_history(page_id)
-        if not prev_content or not prev_content.get("previousVersion"):
-            raise HTTPException(status_code=400, detail="Previous version content not found.")
-        prev_version_number = prev_content["previousVersion"]["number"]
-        # Now fetch the previous version's body
-        prev_version_data = confluence.get(
-            f"/rest/api/content/{page_id}",
-            params={
-                "status": "historical",
-                "version": prev_version_number,
-                "expand": "body.storage"
-            }
-        )
-        if not prev_version_data or not prev_version_data.get("body") or not prev_version_data["body"].get("storage"):
-            raise HTTPException(status_code=400, detail="Could not fetch previous version's body.")
-        prev_body = prev_version_data["body"]["storage"]["value"]
-        # Overwrite the page with previous content
-        updated = confluence.update_page(
+        existing_content = page["body"]["storage"]["value"]
+        # Find the last <hr/>
+        last_hr_index = existing_content.rfind("<hr/>")
+        if last_hr_index == -1:
+            raise HTTPException(status_code=400, detail="No appended block found to undo.")
+        # Remove from last <hr/> to the end
+        new_content = existing_content[:last_hr_index].rstrip()
+        # Update the page with the new content
+        confluence.update_page(
             page_id=page_id,
             title=page_title,
-            body=prev_body,
+            body=new_content,
             representation="storage"
         )
         return {
-            "message": f"Page '{page_title}' rolled back to version {prev_version_number} successfully.",
-            "restored_version": prev_version_number
+            "message": f"Last appended block removed from '{page_title}' successfully.",
+            "removed_from_index": last_hr_index
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
