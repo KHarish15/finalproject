@@ -1303,6 +1303,12 @@ async def undo_last_change(request: UndoRequest, req: Request):
         timestamp_indices = [m.start() for m in timestamp_matches]
         # Combine and sort all marker positions
         all_markers = sorted(hr_indices + timestamp_indices)
+        print("Content length:", len(content))
+        print("All marker positions:", all_markers)
+        if all_markers:
+            print("Content at last marker:", repr(content[all_markers[-1]:all_markers[-1]+100]))
+            if len(all_markers) > 1:
+                print("Content at second-last marker:", repr(content[all_markers[-2]:all_markers[-2]+100]))
         if not all_markers:
             raise HTTPException(status_code=400, detail="No appended or timestamped block found to undo.")
         if len(all_markers) == 1:
