@@ -1279,7 +1279,7 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
 @app.post("/undo-last-change")
 async def undo_last_change(request: UndoRequest, req: Request):
     """
-    Undo the last appended block to a Confluence page (removes content from the last <hr />, <hr/>, or last timestamped block to the end, bulletproof for all trailing whitespace/newlines).
+    Undo the last appended block to a Confluence page (removes content from the second-last <hr />, <hr/>, or timestamped block onward, making undo robust even if the last marker is at the end).
     """
     try:
         import re
@@ -1296,20 +1296,21 @@ async def undo_last_change(request: UndoRequest, req: Request):
         content = existing_content.replace('\r\n', '\n').replace('\r', '\n').rstrip()
         # Remove trailing empty <p /> tags for matching
         content = re.sub(r'(\s*<p\s*/>\s*)+$', '', content, flags=re.IGNORECASE)
-        # Try to find the last <hr /> or <hr/>
-        last_hr_index = max(content.rfind("<hr />"), content.rfind("<hr/>"))
-        if last_hr_index == -1:
-            # Regex: match the last timestamped <p> (non-greedy, any whitespace/newlines after)
-            timestamp_pattern = re.compile(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)(\s*)\Z", re.IGNORECASE | re.MULTILINE)
-            matches = list(timestamp_pattern.finditer(content))
-            if matches:
-                last_match = matches[-1]
-                last_timestamp_index = last_match.start()
-                new_content = content[:last_timestamp_index].rstrip()
-            else:
-                raise HTTPException(status_code=400, detail="No appended or timestamped block found to undo.")
+        # Find all <hr /> or <hr/> markers
+        hr_indices = [m.start() for m in re.finditer(r"<hr\s*/?>", content)]
+        # Find all timestamped <p> markers
+        timestamp_matches = list(re.finditer(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)", content, re.IGNORECASE))
+        timestamp_indices = [m.start() for m in timestamp_matches]
+        # Combine and sort all marker positions
+        all_markers = sorted(hr_indices + timestamp_indices)
+        if not all_markers:
+            raise HTTPException(status_code=400, detail="No appended or timestamped block found to undo.")
+        if len(all_markers) == 1:
+            # Only one marker → delete everything from that marker
+            new_content = content[:all_markers[0]].rstrip()
         else:
-            new_content = content[:last_hr_index].rstrip()
+            # Multiple markers → remove from the second-last one
+            new_content = content[:all_markers[-2]].rstrip()
         # Update the page with the new content
         confluence.update_page(
             page_id=page_id,
