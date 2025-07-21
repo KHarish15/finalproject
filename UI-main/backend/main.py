@@ -1296,13 +1296,16 @@ async def undo_last_change(request: UndoRequest, req: Request):
         content = existing_content.replace('\r\n', '\n').replace('\r', '\n').rstrip()
         # Remove trailing empty <p /> tags for matching
         content = re.sub(r'(\s*<p\s*/>\s*)+$', '', content, flags=re.IGNORECASE)
-        # Print the last 500 characters for debugging
+        # Print the first and last 500 characters for debugging
+        print("Content head:", repr(content[:500]))
         print("Content tail:", repr(content[-500:]))
         # Find all <hr>, <hr/>, <hr />, <hr ...> markers
         hr_indices = [m.start() for m in re.finditer(r"<hr[^>]*>", content)]
+        print("hr_indices:", hr_indices)
         # Find all timestamped <p> markers
         timestamp_matches = list(re.finditer(r"(<p[^>]*><strong>\s*🕒 Updated by AI Assistant on [^<]+</strong></p>)", content, re.IGNORECASE))
         timestamp_indices = [m.start() for m in timestamp_matches]
+        print("timestamp_indices:", timestamp_indices)
         # Combine and sort all marker positions
         all_markers = sorted(hr_indices + timestamp_indices)
         print("Content length:", len(content))
