@@ -19,15 +19,12 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   isSpaceAutoConnected 
 }) => {
   const [selectedSpace, setSelectedSpace] = useState('');
-  const [selectedPages, setSelectedPages] = useState<string[]>([]);
-  const [selectAllPages, setSelectAllPages] = useState(false);
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showRawContent, setShowRawContent] = useState(false);
   const [exportFormat, setExportFormat] = useState('markdown');
   const [spaces, setSpaces] = useState<Space[]>([]);
-  const [pages, setPages] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [saveMode, setSaveMode] = useState('append');
@@ -37,15 +34,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const previewRef = useRef(null);
-
-  const toggleSelectAllPages = () => {
-    if (selectAllPages) {
-      setSelectedPages([]);
-    } else {
-      setSelectedPages([...pages]);
-    }
-    setSelectAllPages(!selectAllPages);
-  };
 
   const features = [
     { id: 'search' as const, label: 'AI Powered Search', icon: Search },
@@ -68,24 +56,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     }
   }, [autoSpaceKey, isSpaceAutoConnected]);
 
-  // Load pages when space is selected
-  useEffect(() => {
-    if (selectedSpace) {
-      loadPages();
-    }
-  }, [selectedSpace]);
-
-  // Sync "Select All" checkbox state
-  useEffect(() => {
-    setSelectAllPages(pages.length > 0 && selectedPages.length === pages.length);
-  }, [selectedPages, pages]);
-
-  useEffect(() => {
-    if (showPreview && previewRef.current) {
-      previewRef.current.scrollLeft = 0;
-    }
-  }, [showPreview, previewContent]);
-
   const loadSpaces = async () => {
     try {
       setError('');
@@ -97,19 +67,8 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     }
   };
 
-  const loadPages = async () => {
-    try {
-      setError('');
-      const result = await apiService.getPages(selectedSpace);
-      setPages(result.pages);
-    } catch (err) {
-      setError('Failed to load pages. Please check your space key.');
-      console.error('Error loading pages:', err);
-    }
-  };
-
   const handleSearch = async () => {
-    if (!selectedSpace || selectedPages.length === 0 || !query.trim()) {
+    if (!selectedSpace || !query.trim()) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -118,12 +77,13 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
     setError('');
 
     try {
+      // Assume getConfluenceSpaceAndPageFromUrl() returns the current page title
+      const { page } = getConfluenceSpaceAndPageFromUrl();
       const result = await apiService.search({
         space_key: selectedSpace,
-        page_titles: selectedPages,
+        page_title: page,
         query: query
       });
-
       setResponse(result.response);
     } catch (err) {
       setError('Failed to generate AI response. Please try again.');
@@ -278,45 +238,6 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                   </div>
                 </div>
 
-                {/* Page Selection */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Pages to Analyze
-                  </label>
-
-                  <div className="space-y-2 max-h-40 overflow-y-auto border border-white/30 rounded-lg p-2 bg-white/50 backdrop-blur-sm">
-                    {pages.map(page => (
-                      <label key={page} className="flex items-center space-x-2 p-2 hover:bg-white/30 rounded cursor-pointer backdrop-blur-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedPages.includes(page)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedPages([...selectedPages, page]);
-                            } else {
-                              setSelectedPages(selectedPages.filter(p => p !== page));
-                            }
-                          }}
-                          className="rounded border-gray-300 text-confluence-blue focus:ring-confluence-blue"
-                        />
-                        <span className="text-sm text-gray-700">{page}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {selectedPages.length} page(s) selected
-                  </p>
-                </div>
-               <div className="flex items-center space-x-2 mb-2">
-                    <input
-                      type="checkbox"
-                      checked={selectAllPages}
-                      onChange={toggleSelectAllPages}
-                      className="rounded border-gray-300 text-confluence-blue focus:ring-confluence-blue"
-                    />
-                    <span className="text-sm text-gray-700 font-medium">Select All Pages</span>
-                </div>
-                <div className="h-4" />
                 {/* Query Input */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -325,7 +246,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                   <textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="What would you like to know about the selected content?"
+                    placeholder="What would you like to know about the content on this page?"
                     className="w-full p-3 border border-white/30 rounded-lg focus:ring-2 focus:ring-confluence-blue focus:border-confluence-blue resize-none bg-white/70 backdrop-blur-sm"
                     rows={4}
                   />
@@ -334,7 +255,7 @@ const AIPoweredSearch: React.FC<AIPoweredSearchProps> = ({
                 {/* Search Button */}
                 <button
                   onClick={handleSearch}
-                  disabled={!selectedSpace || selectedPages.length === 0 || !query.trim() || isLoading}
+                  disabled={!selectedSpace || !query.trim() || isLoading}
                   className="w-full bg-confluence-blue/90 backdrop-blur-sm text-white py-3 px-4 rounded-lg hover:bg-confluence-blue disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors border border-white/10"
                 >
                   {isLoading ? (

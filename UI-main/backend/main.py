@@ -50,7 +50,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Pydantic models for request/response
 class SearchRequest(BaseModel):
     space_key: str
-    page_titles: List[str]
+    page_title: str
     query: str
 
 class VideoRequest(BaseModel):
@@ -252,25 +252,20 @@ async def ai_powered_search(request: SearchRequest, req: Request):
         ai_model = genai.GenerativeModel("models/gemini-1.5-flash-8b-latest")
         confluence = init_confluence()
         space_key = auto_detect_space(confluence, getattr(request, 'space_key', None))
-        
-        full_context = ""
-        selected_pages = []
-        
-        # Get pages
+
+        # Get the single page by title
         pages = confluence.get_all_pages_from_space(space=space_key, start=0, limit=100)
-        selected_pages = [p for p in pages if p["title"] in request.page_titles]
-        
-        if not selected_pages:
-            raise HTTPException(status_code=400, detail="No pages found")
-        
-        # Extract content from selected pages
-        for page in selected_pages:
-            page_id = page["id"]
-            page_data = confluence.get_page_by_id(page_id, expand="body.storage")
-            raw_html = page_data["body"]["storage"]["value"]
-            text_content = clean_html(raw_html)
-            full_context += f"\n\nTitle: {page['title']}\n{text_content}"
-        
+        selected_page = next((p for p in pages if p["title"] == request.page_title), None)
+        if not selected_page:
+            raise HTTPException(status_code=400, detail="Page not found")
+
+        # Extract content from the selected page
+        page_id = selected_page["id"]
+        page_data = confluence.get_page_by_id(page_id, expand="body.storage")
+        raw_html = page_data["body"]["storage"]["value"]
+        text_content = clean_html(raw_html)
+        full_context = f"\n\nTitle: {selected_page['title']}\n{text_content}"
+
         # Generate AI response
         prompt = (
             f"Answer the following question using the provided Confluence page content as context.\n"
@@ -278,16 +273,14 @@ async def ai_powered_search(request: SearchRequest, req: Request):
             f"Question: {request.query}\n"
             f"Instructions: Begin with the answer based on the context above. Then, if applicable, supplement with general knowledge."
         )
-        
+
         response = ai_model.generate_content(prompt)
         ai_response = response.text.strip()
-        
+
         return {
             "response": ai_response,
-            "pages_analyzed": len(selected_pages),
-            "page_titles": [p["title"] for p in selected_pages]
+            "page_analyzed": selected_page["title"]
         }
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
