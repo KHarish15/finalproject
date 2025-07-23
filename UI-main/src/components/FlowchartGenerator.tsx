@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { generateFlowchart } from "../services/api";
+import apiService from "../services/api"; // ✅ Use apiService instead of named import
 
 const FlowchartGenerator: React.FC = () => {
   const [spaceKey, setSpaceKey] = useState("");
@@ -13,10 +13,10 @@ const FlowchartGenerator: React.FC = () => {
     setError(null);
     setImageBase64(null);
     try {
-      const result = await generateFlowchart(spaceKey, pageTitle);
+      const result = await apiService.generateFlowchart(spaceKey, pageTitle); // ✅ Correct method call
       setImageBase64(result.image_base64);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Failed to generate flowchart.");
+      setError("Failed to generate flowchart. Please check space key and page title.");
     } finally {
       setLoading(false);
     }
@@ -73,4 +73,4 @@ const FlowchartGenerator: React.FC = () => {
   );
 };
 
-export default FlowchartGenerator; 
+export default FlowchartGenerator;
