@@ -92,7 +92,7 @@ export interface VideoResponse {
   summary: string;
   quotes: string[];
   timestamps?: string[];
-  qa: Array<{question: string, answer: string}>;
+  qa: Array<{ question: string; answer: string }>;
   page_title: string;
   answer?: string;
 }
@@ -145,6 +145,12 @@ export interface SaveToConfluenceRequest {
 export interface SaveToConfluenceResponse {
   success: boolean;
   message?: string;
+}
+
+export interface FlowchartResponse {
+  image_base64: string;
+  mime_type: string;
+  filename: string;
 }
 
 class ApiService {
@@ -244,6 +250,13 @@ class ApiService {
     });
   }
 
+  async generateFlowchart(spaceKey: string, pageTitle: string): Promise<FlowchartResponse> {
+    return this.makeRequest<FlowchartResponse>('/flowchart-generator', {
+      method: 'POST',
+      body: JSON.stringify({ space_key: spaceKey, page_title: pageTitle }),
+    });
+  }
+
   async exportContent(request: ExportRequest): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}/export`, {
       method: 'POST',
@@ -259,8 +272,7 @@ class ApiService {
     }
 
     const result = await response.json();
-    
-    // Handle binary files (PDF, DOCX) that are base64 encoded
+
     if (request.format === 'pdf' || request.format === 'docx') {
       const binaryString = atob(result.file);
       const bytes = new Uint8Array(binaryString.length);
@@ -269,7 +281,6 @@ class ApiService {
       }
       return new Blob([bytes], { type: result.mime });
     } else {
-      // Handle text files
       const encoder = new TextEncoder();
       const bytes = encoder.encode(result.file);
       return new Blob([bytes], { type: result.mime });
@@ -306,4 +317,4 @@ class ApiService {
 }
 
 const apiService = new ApiService();
-export default apiService; 
+export default apiService;
