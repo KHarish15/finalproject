@@ -9,7 +9,7 @@ import traceback
 import warnings
 import requests
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Body
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fpdf import FPDF
@@ -22,6 +22,7 @@ from io import BytesIO
 import difflib
 import base64
 from datetime import datetime
+from .flowchart_generator import generate_flowchart_image
 
 # Load environment variables
 load_dotenv()
@@ -1257,6 +1258,33 @@ async def preview_save_to_confluence(request: SaveToConfluenceRequest, req: Requ
             "preview_content": request.content,
             "diff": "\n".join(diff)
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/flowchart-generator")
+async def flowchart_generator(space_key: Optional[str] = Body(None), page_title: str = Body(...), req: Request = None):
+    """
+    Generate a flowchart from the content of a Confluence page and return the PNG image as base64.
+    """
+    try:
+        api_key = get_actual_api_key_from_identifier(req.headers.get('x-api-key')) if req else None
+        if api_key:
+            genai.configure(api_key=api_key)
+        confluence = init_confluence()
+        space_key = auto_detect_space(confluence, space_key)
+        # Get page content
+        pages = confluence.get_all_pages_from_space(space=space_key, start=0, limit=100)
+        page = next((p for p in pages if p["title"].strip().lower() == page_title.strip().lower()), None)
+        if not page:
+            raise HTTPException(status_code=404, detail=f"Page '{page_title}' not found")
+        page_id = page["id"]
+        html_content = confluence.get_page_by_id(page_id=page_id, expand="body.storage")["body"]["storage"]["value"]
+        # Extract text content
+        text_content = BeautifulSoup(html_content, "html.parser").get_text(separator="\n")
+        # Generate flowchart image
+        img_bytes = generate_flowchart_image(text_content)
+        img_base64 = base64.b64encode(img_bytes).decode()
+        return {"image_base64": img_base64, "mime_type": "image/png", "filename": f"{page_title}_flowchart.png"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

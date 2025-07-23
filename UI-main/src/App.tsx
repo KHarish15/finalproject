@@ -8,9 +8,25 @@ import ImpactAnalyzer from './components/ImpactAnalyzer';
 import TestSupportTool from './components/TestSupportTool';
 import ImageInsights from './components/ImageInsights';
 import CircularLauncher from './components/CircularLauncher';
+import FlowchartGenerator from './components/FlowchartGenerator';
+import axios from "axios";
 
-export type FeatureType = 'search' | 'video' | 'code' | 'impact' | 'test' | 'image' | null;
+export type FeatureType = 'search' | 'video' | 'code' | 'impact' | 'test' | 'image' | 'flowchart' | null;
 export type AppMode = 'agent' | 'tool' | null;
+
+export async function generateFlowchart(spaceKey: string, pageTitle: string, apiKey?: string) {
+  const response = await axios.post(
+    `${process.env.REACT_APP_API_URL || "http://localhost:8000"}/flowchart-generator`,
+    {
+      space_key: spaceKey,
+      page_title: pageTitle,
+    },
+    {
+      headers: apiKey ? { "x-api-key": apiKey } : {},
+    }
+  );
+  return response.data;
+}
 
 function App() {
   const [activeFeature, setActiveFeature] = useState<FeatureType>(null);
@@ -41,6 +57,8 @@ function App() {
         return <TestSupportTool onClose={() => setActiveFeature(null)} onFeatureSelect={setActiveFeature} autoSpaceKey={autoSpaceKey} isSpaceAutoConnected={!!autoSpaceKey} />;
       case 'image':
         return <ImageInsights onClose={() => setActiveFeature(null)} onFeatureSelect={setActiveFeature} autoSpaceKey={autoSpaceKey} isSpaceAutoConnected={!!autoSpaceKey} />;
+      case 'flowchart':
+        return <FlowchartGenerator />;
       default:
         return <AIPoweredSearch onClose={() => setActiveFeature(null)} onFeatureSelect={setActiveFeature} autoSpaceKey={autoSpaceKey} isSpaceAutoConnected={!!autoSpaceKey} />;
     }
@@ -69,9 +87,18 @@ function App() {
       {!isAppOpen && (
         <CircularLauncher onClick={handleLauncherClick} />
       )}
-      
       {isAppOpen && (
         <div>
+          {/* Add a simple navigation bar for feature selection */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button className="bg-gray-200 px-3 py-1 rounded" onClick={() => setActiveFeature('search')}>AI Powered Search</button>
+            <button className="bg-gray-200 px-3 py-1 rounded" onClick={() => setActiveFeature('video')}>Video Summarizer</button>
+            <button className="bg-gray-200 px-3 py-1 rounded" onClick={() => setActiveFeature('code')}>Code Assistant</button>
+            <button className="bg-gray-200 px-3 py-1 rounded" onClick={() => setActiveFeature('impact')}>Impact Analyzer</button>
+            <button className="bg-gray-200 px-3 py-1 rounded" onClick={() => setActiveFeature('test')}>Test Support Tool</button>
+            <button className="bg-gray-200 px-3 py-1 rounded" onClick={() => setActiveFeature('image')}>Image Insights</button>
+            <button className="bg-blue-500 text-white px-3 py-1 rounded" onClick={() => setActiveFeature('flowchart')}>Flowchart Generator</button>
+          </div>
           {!appMode ? (
             <ModeSelector onModeSelect={handleModeSelect} onClose={handleAppClose} />
           ) : appMode === 'agent' ? (
