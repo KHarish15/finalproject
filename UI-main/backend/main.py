@@ -22,7 +22,7 @@ from io import BytesIO
 import difflib
 import base64
 from datetime import datetime
-from .flowchart_generator import generate_flowchart_image
+from flowchart_generator import generate_flowchart_image
 
 # Load environment variables
 load_dotenv()
