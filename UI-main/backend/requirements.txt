@@ -13,3 +13,4 @@ matplotlib>=3.8.2
 seaborn>=0.13.0
 python-pptx>=0.6.23 
 sqlalchemy>=1.4
+graphviz
